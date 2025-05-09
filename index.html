@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xbcq's Receipt Tracker</title>
+    <style>
+        :root {
+            --bg-color: #212121;
+            --primary-yellow: #FFC107;
+            --primary-yellow-darker: #ffa000;
+            --text-color: #FFFFFF;
+            --card-bg-color: #303030;
+            --border-color: #424242;
+            --global-border-radius: 8px;
+            --font-family: "Poppins Medium", sans-serif;
+            --danger-color: #F44336;
+            --danger-color-darker: #d32f2f;
+            --success-color: #4CAF50;
+            --disabled-color: #616161;
+        }
+
+        @font-face {
+            font-family: 'Poppins Medium';
+            src: url('https://fonts.gstatic.com/s/poppins/v15/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 16px;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--card-bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--primary-yellow);
+            border-radius: var(--global-border-radius);
+            border: 2px solid var(--card-bg-color);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--primary-yellow-darker);
+        }
+
+        .container {
+            width: 95%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: var(--card-bg-color);
+            border-radius: var(--global-border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: var(--primary-yellow);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            background-color: var(--primary-yellow);
+            color: var(--bg-color);
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--global-border-radius);
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .button:hover {
+            background-color: var(--primary-yellow-darker);
+        }
+
+        .button.secondary {
+            background-color: var(--border-color);
+            color: var(--text-color);
+        }
+        .button.secondary:hover {
+            background-color: #525252;
+        }
+
+        .button.danger {
+            background-color: var(--danger-color);
+            color: var(--text-color);
+        }
+        .button.danger:hover {
+            background-color: var(--danger-color-darker);
+        }
+
+
+        input[type="text"], input[type="password"], input[type="number"], select {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: var(--global-border-radius);
+            font-family: var(--font-family);
+            font-size: 1em;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-yellow);
+            box-shadow: 0 0 0 2px var(--primary-yellow-darker);
+        }
+
+        .controls, .view-options, .chart-container, .receipt-list-container, .receipt-detail-container, .settings-section {
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .view-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #apiKeyModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg-color);
+            padding: 30px;
+            border-radius: var(--global-border-radius);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            color: var(--primary-yellow);
+            margin-top: 0;
+        }
+
+        #loadingIndicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* Above API key modal if needed */
+            color: var(--primary-yellow);
+        }
+
+        .spinner {
+            border: 6px solid var(--border-color);
+            border-top: 6px solid var(--primary-yellow);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            background-color: rgba(244, 67, 54, 0.1);
+            border: 1px solid var(--danger-color);
+            padding: 10px;
+            border-radius: var(--global-border-radius);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .info-message {
+            color: var(--primary-yellow);
+            background-color: rgba(255, 193, 7, 0.1);
+            border: 1px solid var(--primary-yellow);
+            padding: 10px;
+            border-radius: var(--global-border-radius);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative; /* For legend */
+        }
+
+        #spendingChart {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background-color: var(--bg-color); /* Fallback */
+            position: relative; /* For segments */
+        }
+        .chart-legend {
+            list-style: none;
+            padding: 0;
+            margin-left: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .chart-legend li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .legend-color-box {
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+
+        .receipt-group, .receipt-item, .itemized-item {
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: var(--global-border-radius);
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        .receipt-group:hover, .receipt-item:hover {
+            border-color: var(--primary-yellow);
+        }
+        .receipt-group h3, .receipt-item h4 {
+            margin-top: 0;
+            color: var(--primary-yellow);
+        }
+        .receipt-summary {
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        .itemized-list {
+            margin-top: 10px;
+            padding-left: 0; /* remove default ul padding */
+            list-style-type: none; /* remove default list bullets */
+        }
+        .itemized-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background-color: #3a3a3a; /* Slightly different background for items */
+            border: none;
+        }
+        .itemized-item span:first-child {
+            flex-grow: 1;
+        }
+        .itemized-item span:last-child {
+            font-weight: bold;
+        }
+        .receipt-detail-total {
+            text-align: right;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-yellow);
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .back-button-container {
+            margin-bottom: 15px;
+        }
+
+        .footer-actions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>xbcq's Receipt Tracker</h1>
+
+        <div id="errorDisplay" class="error-message" style="display:none;"></div>
+        <div id="infoDisplay" class="info-message" style="display:none;"></div>
+
+        <div class="controls">
+            <button id="scanReceiptButton" class="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                Scan New Receipt
+            </button>
+            <input type="file" id="receiptImageInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div id="mainContent">
+            <div class="chart-container">
+                <div id="spendingChart"></div>
+                <ul id="chartLegend" class="chart-legend"></ul>
+            </div>
+
+            <div class="view-options">
+                <button id="groupBySellerButton" class="button secondary">Group by Seller</button>
+                <button id="groupByCategoryButton" class="button secondary">Group by Category</button>
+            </div>
+
+            <div id="receiptListContainer" class="receipt-list-container">
+                </div>
+            
+            <div id="receiptDetailContainer" class="receipt-detail-container" style="display:none;">
+                 <div class="back-button-container">
+                    <button id="backToListButton" class="button secondary">&larr; Back to List</button>
+                </div>
+                <h2 id="detailSellerName"></h2>
+                <p id="detailPurchaseDate"></p>
+                <p id="detailCategory"></p>
+                <ul id="detailItemizedList" class="itemized-list"></ul>
+                <div id="detailTotalAmount" class="receipt-detail-total"></div>
+                </div>
+        </div>
+        
+        <div class="footer-actions">
+            <button id="manageDataButton" class="button secondary">Manage Data</button>
+        </div>
+    </div>
+
+    <div id="apiKeyModal" style="display:none;">
+        <div class="modal-content">
+            <h2>Enter Gemini API Key</h2>
+            <p>Please enter your Google Gemini API key to analyze receipts. Your key will be saved in your browser's local storage for future use.</p>
+            <input type="password" id="apiKeyInput" placeholder="Your Gemini API Key">
+            <button id="saveApiKeyButton" class="button">Save Key</button>
+            <p style="font-size: 0.8em; margin-top: 15px;">You can obtain a key from Google AI Studio.</p>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" style="display:none;">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Loading...</p>
+    </div>
+    
+    <div id="dataManagementModal" style="display:none;">
+        <div class="modal-content">
+            <h2>Manage Data</h2>
+            <button id="exportDataButton" class="button">Export All Data (JSON)</button>
+            <button id="importDataButton" class="button secondary" style="margin-top:10px;">Import Data (JSON)</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;">
+            <hr style="border-color: var(--border-color); margin: 20px 0;">
+            <button id="clearApiKeyButton" class="button danger">Clear API Key</button>
+            <button id="clearAllReceiptsButton" class="button danger" style="margin-top:10px;">Clear All Receipts</button>
+             <button id="closeDataManagementModalButton" class="button secondary" style="margin-top:20px;">Close</button>
+        </div>
+    </div>
+
+
+    <script>
+        const GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiKeyButton = document.getElementById('saveApiKeyButton');
+        
+        const scanReceiptButton = document.getElementById('scanReceiptButton');
+        const receiptImageInput = document.getElementById('receiptImageInput');
+        
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorDisplay = document.getElementById('errorDisplay');
+        const infoDisplay = document.getElementById('infoDisplay');
+
+        const mainContent = document.getElementById('mainContent');
+        const spendingChartDiv = document.getElementById('spendingChart');
+        const chartLegendUl = document.getElementById('chartLegend');
+        
+        const groupBySellerButton = document.getElementById('groupBySellerButton');
+        const groupByCategoryButton = document.getElementById('groupByCategoryButton');
+        
+        const receiptListContainer = document.getElementById('receiptListContainer');
+        const receiptDetailContainer = document.getElementById('receiptDetailContainer');
+        const backToListButton = document.getElementById('backToListButton');
+
+        const detailSellerName = document.getElementById('detailSellerName');
+        const detailPurchaseDate = document.getElementById('detailPurchaseDate');
+        const detailCategory = document.getElementById('detailCategory');
+        const detailItemizedList = document.getElementById('detailItemizedList');
+        const detailTotalAmount = document.getElementById('detailTotalAmount');
+
+        const manageDataButton = document.getElementById('manageDataButton');
+        const dataManagementModal = document.getElementById('dataManagementModal');
+        const exportDataButton = document.getElementById('exportDataButton');
+        const importDataButton = document.getElementById('importDataButton');
+        const importFile = document.getElementById('importFile');
+        const clearApiKeyButton = document.getElementById('clearApiKeyButton');
+        const clearAllReceiptsButton = document.getElementById('clearAllReceiptsButton');
+        const closeDataManagementModalButton = document.getElementById('closeDataManagementModalButton');
+
+
+        let geminiApiKey = '';
+        let receipts = []; // Array to store receipt objects
+        let currentView = 'seller'; // 'seller' or 'category'
+        let currentGroupFilter = null; // e.g., 'HGSPOT' or 'Groceries' if drilling down
+
+        // --- Utility Functions ---
+        function showLoading(message = "Processing...") {
+            loadingMessage.textContent = message;
+            loadingIndicator.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingIndicator.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorDisplay.textContent = message;
+            errorDisplay.style.display = 'block';
+            setTimeout(() => errorDisplay.style.display = 'none', 5000);
+        }
+        
+        function showInfo(message) {
+            infoDisplay.textContent = message;
+            infoDisplay.style.display = 'block';
+            setTimeout(() => infoDisplay.style.display = 'none', 3000);
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('geminiApiKey', geminiApiKey);
+            localStorage.setItem('receipts', JSON.stringify(receipts));
+        }
+
+        function loadFromLocalStorage() {
+            const storedApiKey = localStorage.getItem('geminiApiKey');
+            if (storedApiKey) {
+                geminiApiKey = storedApiKey;
+            } else {
+                apiKeyModal.style.display = 'flex';
+            }
+
+            const storedReceipts = localStorage.getItem('receipts');
+            if (storedReceipts) {
+                receipts = JSON.parse(storedReceipts);
+            }
+        }
+        
+        function cleanSellerName(name) {
+            if (!name || typeof name !== 'string') return "Unknown Seller";
+            let cleanedName = name;
+            const suffixesToRemove = [
+                /d\.o\.o\./gi, /d\.d\./gi, /j\.d\.o\.o\./gi, /k\.d\./gi, /d\.n\.o\./gi,
+                /Ltd\./gi, /Inc\./gi, /LLC/gi, /GmbH/gi, /S\.A\./gi, /A\.S\./gi,
+                /Grupa/gi, /obrt/gi // More generic, might need care
+            ];
+            suffixesToRemove.forEach(suffix => {
+                cleanedName = cleanedName.replace(suffix, '');
+            });
+            cleanedName = cleanedName.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+            // Remove trailing commas or dots that might be left after suffix removal
+            cleanedName = cleanedName.replace(/[,.]+$/, '').trim();
+            return cleanedName || "Unknown Seller";
+        }
+
+        // Simple string to HSL color for chart segments
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = hash % 360;
+            return `hsl(${h}, 70%, 50%)`;
+        }
+
+        // --- API Key Management ---
+        saveApiKeyButton.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                geminiApiKey = key;
+                saveToLocalStorage();
+                apiKeyModal.style.display = 'none';
+                showInfo("API Key saved!");
+                if (receipts.length === 0) renderReceipts(); // Initial render if key was just added
+            } else {
+                showError("Please enter a valid API key.");
+            }
+        });
+
+        // --- Image Handling and API Call ---
+        scanReceiptButton.addEventListener('click', () => {
+            if (!geminiApiKey) {
+                apiKeyModal.style.display = 'flex';
+                showError("Please set your Gemini API key first.");
+                return;
+            }
+            receiptImageInput.click();
+        });
+
+        receiptImageInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file.');
+                return;
+            }
+
+            showLoading("Preparing image...");
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64Data = reader.result.split(',')[1];
+                await analyzeReceiptImage(base64Data, file.name);
+            };
+            reader.readAsDataURL(file);
+            receiptImageInput.value = ''; // Reset file input
+        });
+
+        async function analyzeReceiptImage(base64ImageData, fileName) {
+            if (!geminiApiKey) {
+                showError("API Key is not set.");
+                hideLoading();
+                apiKeyModal.style.display = 'flex';
+                return;
+            }
+            showLoading("Analyzing receipt with Gemini...");
+
+            const prompt = `
+Analyze the following receipt image. Extract the information in structured JSON format.
+The JSON object should have the following top-level keys: "seller_info", "items", "total_amount", "purchase_date", "category".
+
+1.  "seller_info": An object containing:
+    * "full_name": The full name of the seller as it appears on the receipt. If not clearly identifiable, use "Unknown Seller".
+    * "short_name": A common or shortened version of the seller's name suitable for display (e.g., for "SuperMarket Trgovina d.o.o.", provide "SuperMarket"). If not applicable or same as full_name, use the full_name.
+2.  "items": An array of objects, where each object represents an item purchased and contains:
+    * "name": The name of the item.
+    * "quantity": The quantity of the item (numeric, default to 1 if not specified).
+    * "unit_price": The price of a single unit of the item (numeric). If only total for item line is available and quantity is 1, use that.
+    * "total_price": The total price for this item line (numeric, quantity * unit_price). If only this is available, use it.
+    If item details are not clearly separable, you can provide a single item "General Purchase" with the total amount.
+3.  "total_amount": The final total amount paid for the entire receipt (numeric value).
+4.  "purchase_date": The date of the purchase in YYYY-MM-DD format. If the year is not present, assume the current year. If the date is not identifiable, use null.
+5.  "category": A category for the purchase. Choose one: "Groceries", "Electronics", "DIY/Hardware", "Restaurant/Food", "Clothing & Accessories", "Health & Beauty", "Transportation", "Bills & Utilities", "Entertainment", "Services", "Other". If unsure, use "Other".
+
+Constraints:
+- Respond ONLY with the JSON object. Do not include any explanatory text before or after the JSON.
+- Ensure all monetary values are numbers, not strings.
+- If a value cannot be extracted, use null for string/date fields, or 0 for numeric fields if appropriate, or omit item fields if not applicable.
+- For items, if quantity or unit_price is hard to determine, but a line total is clear, prioritize extracting the line name and its total_price.
+
+Example of a good "items" entry:
+{ "name": "Milk 1L", "quantity": 2, "unit_price": 1.50, "total_price": 3.00 }
+Example if only line total is clear:
+{ "name": "Bakery items", "quantity": 1, "unit_price": 5.75, "total_price": 5.75 }
+`;
+
+            try {
+                const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${geminiApiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: 'image/jpeg', data: base64ImageData } }
+                            ]
+                        }],
+                        generationConfig: {
+                            // "response_mime_type": "application/json", // Enable this if model supports it and for stricter JSON output
+                            "temperature": 0.2 // Lower temperature for more deterministic output
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Gemini API Error:", errorData);
+                    throw new Error(`Gemini API request failed: ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const responseData = await response.json();
+                
+                let jsonText = responseData.candidates[0]?.content?.parts[0]?.text;
+                if (!jsonText) {
+                    throw new Error("No text content found in Gemini response.");
+                }
+                
+                // Clean potential markdown ```json ... ```
+                jsonText = jsonText.replace(/^```json\s*|```$/g, '').trim();
+
+                const parsedData = JSON.parse(jsonText);
+                processGeminiResponse(parsedData, fileName);
+
+            } catch (error) {
+                console.error('Error analyzing receipt:', error);
+                showError(`Failed to analyze receipt: ${error.message}. Check console for details.`);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function processGeminiResponse(data, fileName) {
+            console.log("Gemini Parsed Data:", data);
+            if (!data || !data.seller_info || !data.items || data.total_amount === undefined) {
+                showError("Gemini response is missing essential data. Please try a clearer image or check the prompt.");
+                return;
+            }
+
+            const sellerShortName = data.seller_info.short_name || cleanSellerName(data.seller_info.full_name) || "Unknown Seller";
+            
+            // Validate and sanitize items
+            const validItems = (data.items || []).map(item => ({
+                name: item.name || "Unknown Item",
+                quantity: parseFloat(item.quantity) || 1,
+                unit_price: parseFloat(item.unit_price) || 0,
+                total_price: parseFloat(item.total_price) || 0
+            })).filter(item => item.name !== "Unknown Item" || item.total_price > 0);
+
+
+            const newReceipt = {
+                id: `receipt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                scannedTimestamp: new Date().toISOString(),
+                fileName: fileName,
+                sellerFullName: data.seller_info.full_name || "Unknown Seller",
+                sellerShortName: sellerShortName,
+                items: validItems,
+                totalAmount: parseFloat(data.total_amount) || 0,
+                purchaseDate: data.purchase_date || new Date().toISOString().split('T')[0], // Default to today if null
+                category: data.category || "Other",
+                // originalImage: base64ImageData // Optional: store if needed for display
+            };
+
+            if (newReceipt.items.length === 0 && newReceipt.totalAmount > 0) {
+                 newReceipt.items.push({ name: "General Purchase", quantity: 1, unit_price: newReceipt.totalAmount, total_price: newReceipt.totalAmount });
+            } else if (newReceipt.items.length === 0 && newReceipt.totalAmount === 0) {
+                showError("Could not extract any items or a total amount from the receipt.");
+                return;
+            }
+
+
+            receipts.unshift(newReceipt); // Add to the beginning of the array
+            saveToLocalStorage();
+            showInfo(`Receipt from ${newReceipt.sellerShortName} added!`);
+            renderAll();
+        }
+
+        // --- Rendering Functions ---
+        function renderAll() {
+            renderSpendingChart();
+            renderReceipts(); // This will respect currentView and currentGroupFilter
+            updateViewButtonStates();
+        }
+
+        function renderSpendingChart() {
+            spendingChartDiv.innerHTML = ''; // Clear previous chart
+            chartLegendUl.innerHTML = ''; // Clear previous legend
+
+            if (receipts.length === 0) {
+                spendingChartDiv.style.background = 'var(--bg-color)'; // Reset background
+                const noDataMsg = document.createElement('p');
+                noDataMsg.textContent = 'No spending data yet.';
+                noDataMsg.style.textAlign = 'center';
+                noDataMsg.style.lineHeight = `${spendingChartDiv.offsetHeight}px`;
+                spendingChartDiv.appendChild(noDataMsg);
+                return;
+            }
+            
+            const spendingBySeller = receipts.reduce((acc, receipt) => {
+                const seller = receipt.sellerShortName;
+                acc[seller] = (acc[seller] || 0) + receipt.totalAmount;
+                return acc;
+            }, {});
+
+            const sortedSellers = Object.entries(spendingBySeller)
+                .sort(([,a],[,b]) => b-a); // Sort by amount descending
+
+            let gradientString = 'conic-gradient(';
+            let currentAngle = 0;
+            const totalSpending = sortedSellers.reduce((sum, [,amount]) => sum + amount, 0);
+
+            if (totalSpending === 0) {
+                 spendingChartDiv.style.background = 'var(--bg-color)';
+                 const zeroMsg = document.createElement('p');
+                 zeroMsg.textContent = 'Total spending is zero.';
+                 zeroMsg.style.textAlign = 'center';
+                 spendingChartDiv.appendChild(zeroMsg);
+                 return;
+            }
+
+            sortedSellers.forEach(([seller, amount], index) => {
+                const percentage = (amount / totalSpending) * 360;
+                const color = stringToColor(seller);
+                
+                if (index === 0) {
+                    gradientString += `${color} 0deg ${percentage}deg`;
+                } else {
+                    gradientString += `, ${color} ${currentAngle}deg ${currentAngle + percentage}deg`;
+                }
+                currentAngle += percentage;
+
+                // Add to legend
+                const legendItem = document.createElement('li');
+                const colorBox = document.createElement('span');
+                colorBox.className = 'legend-color-box';
+                colorBox.style.backgroundColor = color;
+                legendItem.appendChild(colorBox);
+                legendItem.append(`${seller}: ${amount.toFixed(2)} (${((amount/totalSpending)*100).toFixed(1)}%)`);
+                chartLegendUl.appendChild(legendItem);
+            });
+            gradientString += ')';
+            spendingChartDiv.style.background = gradientString;
+        }
+
+        function renderReceipts() {
+            receiptListContainer.innerHTML = '';
+            receiptDetailContainer.style.display = 'none';
+            mainContent.style.display = 'block'; // Ensure main list view is visible
+
+            if (currentGroupFilter) { // Viewing items within a group
+                renderFilteredReceipts();
+            } else { // Viewing groups (sellers or categories)
+                renderGroupedReceipts();
+            }
+             updateViewButtonStates();
+        }
+        
+        function updateViewButtonStates() {
+            if (currentView === 'seller') {
+                groupBySellerButton.classList.remove('secondary');
+                groupByCategoryButton.classList.add('secondary');
+            } else {
+                groupByCategoryButton.classList.remove('secondary');
+                groupBySellerButton.classList.add('secondary');
+            }
+        }
+
+        function renderGroupedReceipts() {
+            receiptListContainer.innerHTML = ''; // Clear existing list
+            let groups = {};
+
+            if (receipts.length === 0) {
+                receiptListContainer.innerHTML = '<p style="text-align:center;">No receipts scanned yet. Click "Scan New Receipt" to start.</p>';
+                return;
+            }
+
+            if (currentView === 'seller') {
+                groups = receipts.reduce((acc, receipt) => {
+                    const key = receipt.sellerShortName;
+                    if (!acc[key]) acc[key] = { receipts: [], total: 0 };
+                    acc[key].receipts.push(receipt);
+                    acc[key].total += receipt.totalAmount;
+                    return acc;
+                }, {});
+            } else { // 'category'
+                groups = receipts.reduce((acc, receipt) => {
+                    const key = receipt.category;
+                    if (!acc[key]) acc[key] = { receipts: [], total: 0 };
+                    acc[key].receipts.push(receipt);
+                    acc[key].total += receipt.totalAmount;
+                    return acc;
+                }, {});
+            }
+            
+            const sortedGroupKeys = Object.keys(groups).sort((a,b) => groups[b].total - groups[a].total);
+
+
+            if (sortedGroupKeys.length === 0) {
+                 receiptListContainer.innerHTML = `<p style="text-align:center;">No receipts found for the current view.</p>`;
+                 return;
+            }
+
+            sortedGroupKeys.forEach(key => {
+                const group = groups[key];
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'receipt-group';
+                groupDiv.innerHTML = `
+                    <h3>${key}</h3>
+                    <p class="receipt-summary">${group.receipts.length} receipt(s) - Total: ${group.total.toFixed(2)}</p>
+                `;
+                groupDiv.addEventListener('click', () => {
+                    currentGroupFilter = key;
+                    renderFilteredReceipts();
+                });
+                receiptListContainer.appendChild(groupDiv);
+            });
+        }
+        
+        function renderFilteredReceipts() { // When a seller or category is clicked
+            receiptListContainer.innerHTML = ''; // Clear existing list
+
+            const backButton = document.createElement('button');
+            backButton.className = 'button secondary';
+            backButton.innerHTML = '&larr; Back to Groups';
+            backButton.style.marginBottom = '15px';
+            backButton.onclick = () => {
+                currentGroupFilter = null;
+                renderGroupedReceipts();
+            };
+            receiptListContainer.appendChild(backButton);
+            
+            const filtered = receipts.filter(r => {
+                return currentView === 'seller' ? r.sellerShortName === currentGroupFilter : r.category === currentGroupFilter;
+            }).sort((a,b) => new Date(b.purchaseDate || b.scannedTimestamp) - new Date(a.purchaseDate || a.scannedTimestamp)); // Sort by date descending
+
+            if (filtered.length === 0) {
+                 receiptListContainer.innerHTML += `<p style="text-align:center;">No receipts found for ${currentGroupFilter}.</p>`;
+                 return;
+            }
+
+            filtered.forEach(receipt => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'receipt-item'; // Could be styled differently than a group
+                const displayDate = receipt.purchaseDate ? new Date(receipt.purchaseDate).toLocaleDateString() : 'Date N/A';
+                const firstItemPreview = receipt.items.length > 0 ? ` - ${receipt.items[0].name.substring(0,30)}...` : '';
+
+                itemDiv.innerHTML = `
+                    <h4>${currentView === 'seller' ? displayDate : receipt.sellerShortName} (Total: ${receipt.totalAmount.toFixed(2)})</h4>
+                    <p class="receipt-summary">
+                        ${currentView === 'seller' ? receipt.category : displayDate}
+                        ${firstItemPreview}
+                    </p>
+                `;
+                itemDiv.addEventListener('click', () => showReceiptDetail(receipt.id));
+                receiptListContainer.appendChild(itemDiv);
+            });
+        }
+
+
+        function showReceiptDetail(receiptId) {
+            const receipt = receipts.find(r => r.id === receiptId);
+            if (!receipt) return;
+
+            detailSellerName.textContent = receipt.sellerFullName || receipt.sellerShortName;
+            detailPurchaseDate.textContent = `Date: ${receipt.purchaseDate ? new Date(receipt.purchaseDate).toLocaleDateString() : 'N/A'}`;
+            detailCategory.textContent = `Category: ${receipt.category}`;
+            
+            detailItemizedList.innerHTML = '';
+            receipt.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'itemized-item';
+                li.innerHTML = `
+                    <span>${item.quantity} x ${item.name} (@ ${item.unit_price ? item.unit_price.toFixed(2) : 'N/A'})</span>
+                    <span>${item.total_price.toFixed(2)}</span>
+                `;
+                detailItemizedList.appendChild(li);
+            });
+
+            detailTotalAmount.textContent = `Total: ${receipt.totalAmount.toFixed(2)}`;
+            
+            // If you stored the image:
+            // const detailReceiptImage = document.getElementById('detailReceiptImage');
+            // if (receipt.originalImage && detailReceiptImage) {
+            //     detailReceiptImage.src = receipt.originalImage;
+            //     detailReceiptImage.style.display = 'block';
+            // } else if (detailReceiptImage) {
+            //    detailReceiptImage.style.display = 'none';
+            // }
+
+            mainContent.style.display = 'none';
+            receiptDetailContainer.style.display = 'block';
+        }
+
+        backToListButton.addEventListener('click', () => {
+            receiptDetailContainer.style.display = 'none';
+            mainContent.style.display = 'block';
+            // No need to call renderReceipts() here if the list underneath is preserved,
+            // or call it if you want to ensure it's up-to-date (e.g. currentGroupFilter might be set)
+            renderReceipts();
+        });
+        
+        // --- View Toggles ---
+        groupBySellerButton.addEventListener('click', () => {
+            currentView = 'seller';
+            currentGroupFilter = null; // Reset filter when changing main view
+            renderAll();
+        });
+
+        groupByCategoryButton.addEventListener('click', () => {
+            currentView = 'category';
+            currentGroupFilter = null; // Reset filter
+            renderAll();
+        });
+
+        // --- Data Management ---
+        manageDataButton.addEventListener('click', () => {
+            dataManagementModal.style.display = 'flex';
+        });
+        closeDataManagementModalButton.addEventListener('click', () => {
+            dataManagementModal.style.display = 'none';
+        });
+
+        exportDataButton.addEventListener('click', () => {
+            if (receipts.length === 0) {
+                showInfo("No data to export.");
+                return;
+            }
+            const jsonData = JSON.stringify({ apiKey: geminiApiKey, receipts: receipts }, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `xbcq_receipt_tracker_export_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showInfo("Data exported successfully!");
+        });
+
+        importDataButton.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.receipts && Array.isArray(importedData.receipts)) {
+                        // Simple merge: add new, don't check for duplicates for now.
+                        // A more robust import might check IDs or offer merge strategies.
+                        const newReceipts = importedData.receipts.filter(ir => !receipts.some(er => er.id === ir.id));
+                        receipts = receipts.concat(newReceipts);
+                        
+                        if (importedData.apiKey && !geminiApiKey) {
+                            geminiApiKey = importedData.apiKey;
+                        }
+                        saveToLocalStorage();
+                        renderAll();
+                        showInfo(`Imported ${newReceipts.length} new receipts. Total receipts: ${receipts.length}.`);
+                    } else {
+                        showError("Invalid import file format. Expected 'receipts' array.");
+                    }
+                } catch (err) {
+                    showError(`Error importing data: ${err.message}`);
+                } finally {
+                    importFile.value = ''; // Reset file input
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        clearApiKeyButton.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear your API key? You will need to re-enter it.")) {
+                geminiApiKey = '';
+                localStorage.removeItem('geminiApiKey');
+                showInfo("API Key cleared.");
+                apiKeyModal.style.display = 'flex'; // Show modal to re-enter
+            }
+        });
+
+        clearAllReceiptsButton.addEventListener('click', () => {
+            if (confirm("ARE YOU SURE you want to delete ALL receipts? This action cannot be undone.")) {
+                receipts = [];
+                saveToLocalStorage();
+                renderAll();
+                showInfo("All receipts have been deleted.");
+            }
+        });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            if (geminiApiKey) { // Only render if API key exists, otherwise modal is shown
+                renderAll();
+            } else {
+                // Show some placeholder or message if no API key and no receipts
+                spendingChartDiv.innerHTML = '<p style="text-align:center; line-height: 250px;">Set API Key to begin</p>';
+                receiptListContainer.innerHTML = '<p style="text-align:center;">Please set your Gemini API Key to scan and view receipts.</p>';
+            }
+             updateViewButtonStates(); // Set initial button active state
+        });
+
+    </script>
+</body>
+</html>
